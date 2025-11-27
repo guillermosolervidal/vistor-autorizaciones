@@ -484,6 +484,12 @@
             Ningún archivo seleccionado
           </span>
         </div>
+
+        <div class="row" style="width:100%; margin-bottom:8px; text-align: center;">
+          <button id="downloadDrive" style="width:100%; background:linear-gradient(180deg,#0e4aa1,#0b3678);">
+            ☁️ Descargar última versión desde Drive
+          </button>
+        </div>
       </div>
 
       <div id="stepPw"
@@ -539,6 +545,15 @@
           img.replaceWith(span);
         }
         img.addEventListener('error', onErr, { once: true });
+      });
+    }
+
+     const DRIVE_BIN_URL = "https://drive.google.com/uc?export=download&id=1IdIF36pOJzmSZA9C6vKj7v5dPHr2O5Ww";
+
+    const btnDownloadDrive = document.getElementById("downloadDrive");
+    if (btnDownloadDrive) {
+      btnDownloadDrive.addEventListener("click", () => {
+        window.open(DRIVE_BIN_URL, "_blank", "noopener");
       });
     }
 
