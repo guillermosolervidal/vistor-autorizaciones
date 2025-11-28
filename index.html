@@ -474,21 +474,21 @@
       <h2>Seleccionar archivo de autorizaciones</h2>
       <div class="soft">
         <div class="row" style="width:100%; margin-bottom:8px; text-align: center;">
-          <button id="pick" style="width:100%;">
+          <button id="pick" style="width:100%; margin-bottom:6px;">
             📂 Seleccionar archivo (.bin)
           </button>
         </div>
 
-        <div class="row" style="width:100%;">
-          <span id="fileName" class="muted" style="width:100%; word-break:break-all; ; text-align: center;">
-            Ningún archivo seleccionado
-          </span>
+        <div class="row" style="width:100%; margin-bottom:8px; text-align: center;">
+          <button id="btnGithub" style="width:100%;">
+            ⬇️ Reintentar desde GitHub
+          </button>
         </div>
 
-        <div class="row" style="width:100%; margin-bottom:8px; text-align: center;">
-          <button id="downloadDrive" style="width:100%; background:linear-gradient(180deg,#0e4aa1,#0b3678);">
-            ☁️ Descargar última versión desde Drive
-          </button>
+        <div class="row" style="width:100%;">
+          <span id="fileName" class="muted" style="width:100%; word-break:break-all; text-align: center;">
+            Ningún archivo seleccionado
+          </span>
         </div>
       </div>
 
@@ -516,6 +516,8 @@
 
     const MAGIC = "APEN1";
     const VERSION = 1;
+
+    const GITHUB_BIN_URL = "autorizaciones.bin";
 
     let PAGE_SIZE = 50;
     const PAGE_SIZE_OPTIONS = [50, 100, 200, 300, 500];
@@ -545,15 +547,6 @@
           img.replaceWith(span);
         }
         img.addEventListener('error', onErr, { once: true });
-      });
-    }
-
-     const DRIVE_BIN_URL = "https://drive.google.com/uc?export=download&id=1IdIF36pOJzmSZA9C6vKj7v5dPHr2O5Ww";
-
-    const btnDownloadDrive = document.getElementById("downloadDrive");
-    if (btnDownloadDrive) {
-      btnDownloadDrive.addEventListener("click", () => {
-        window.open(DRIVE_BIN_URL, "_blank", "noopener");
       });
     }
 
@@ -603,6 +596,7 @@
     const msgBox = document.getElementById("msg");
     const modal  = document.getElementById("modal");
     const pickBtn = document.getElementById("pick");
+    const githubBtn = document.getElementById("btnGithub");
     const fileInp = document.getElementById("f");
     const fileLbl = document.getElementById("fileName");
     const stepPw  = document.getElementById("stepPw");
@@ -913,6 +907,61 @@
       hideAlert();
     });
 
+        async function fetchBinFromGithub(auto = false) {
+      // auto = true  -> intento silencioso al abrir la página
+      // auto = false -> usuario tocó el botón "Reintentar desde GitHub"
+
+      if (!auto) {
+        hideAlert();
+        setAlert("info", "Descargando archivo desde GitHub…", true);
+      }
+
+      try {
+        const resp = await fetch(GITHUB_BIN_URL, {
+          cache: "no-store"
+        });
+
+        if (!resp.ok) {
+          throw new Error("HTTP " + resp.status);
+        }
+
+        const buf = await resp.arrayBuffer();
+
+        PREFETCH_BUF  = buf;
+        PREFETCH_NAME = "autorizaciones.bin";
+
+        fileLbl.textContent  = `Archivo (GitHub): ${PREFETCH_NAME}`;
+        stepPw.style.display = "flex";
+        openBtn.disabled     = false;
+
+        if (!auto) {
+          hideAlert();
+        }
+        setAlert("ok", "Archivo descargado desde GitHub. Ingresá la contraseña.");
+        pwInp.focus();
+      } catch (e) {
+        console.error(e);
+        if (!auto) {
+          hideAlert();
+          setAlert("err", "No se pudo descargar el archivo desde GitHub. Verificá que esté subido y el nombre sea correcto.");
+        } else {
+          hideAlert();
+        }
+      }
+    }
+
+    if (githubBtn) {
+      githubBtn.addEventListener("click", () => {
+        fetchBinFromGithub(false);
+      });
+    }
+
+    if (githubBtn) {
+      githubBtn.addEventListener("click", () => {
+        fetchBinFromGithub();
+      });
+    }
+
     openBtn.addEventListener("click", async () => {
       const f  = fileInp.files[0];
       const pw = (pwInp.value || "").trim();
@@ -1091,11 +1140,23 @@
       applyFileIdInfo();
     };
 
-    modal.classList.remove("hidden");
-    onRemoteReady();
-    installEmojiFallbacks();
-    setTimeout(hideSplash, 3200);
-    applyFileIdInfo();
+    (async function initApp() {
+      modal.classList.remove("hidden");
+      installEmojiFallbacks();
+      setTimeout(hideSplash, 3200);
+
+      try {
+        if (window.Android && typeof Android.hasRemoteBin === "function") {
+          await onRemoteReady();
+        } else {
+          await fetchBinFromGithub(true);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+
+      applyFileIdInfo();
+    })();
   </script>
 </body>
 </html>
