@@ -388,6 +388,33 @@
     #wrap th:nth-child(4), #wrap td:nth-child(4){min-width:260px;}
     #wrap th:nth-child(13), #wrap td:nth-child(13){min-width:340px;}
     #wrap th:nth-child(12), #wrap td:nth-child(12){min-width:220px;}
+   .toast{
+      position:fixed;
+      bottom:20px;
+      left:50%;
+      transform:translateX(-50%);
+      z-index:11000;
+      padding:10px 16px;
+      border-radius:999px;
+      font-size:13px;
+      display:none;
+      align-items:center;
+      gap:8px;
+      box-shadow:0 6px 16px rgba(0,0,0,.25);
+    }
+    .toast.ok{
+      background:#e9f7ef;
+      border:1px solid #c9ebd7;
+      color:#176f3f;
+    }
+    .toast.err{
+      background:#fdeaea;
+      border:1px solid #f5c2c0;
+      color:#962323;
+    }
+    .toast.show{
+      display:flex;
+    }
   </style>
 </head>
 <body>
@@ -624,6 +651,20 @@
       msgBox.innerHTML =
         (withSpinner ? '<span class="spinner"></span>' : '') +
         `<span>${escText}</span>`;
+    }
+
+    let toastTimer = null;
+    function showToast(type, text, duration = 6000) {
+      const toast = document.getElementById("toast");
+      if (!toast) return;
+
+      toast.textContent = text;
+      toast.className = "toast " + (type === "ok" ? "ok" : "err") + " show";
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove("show");
+      }, duration);
     }
 
     function hideAlert() {
@@ -908,8 +949,8 @@
     });
 
         async function fetchBinFromGithub(auto = false) {
-      // auto = true  -> intento silencioso al abrir la página
-      // auto = false -> usuario tocó el botón "Reintentar desde GitHub"
+      // auto = true
+      // auto = false
 
       if (!auto) {
         hideAlert();
@@ -934,31 +975,32 @@
         stepPw.style.display = "flex";
         openBtn.disabled     = false;
 
+        if (githubBtn) {
+          githubBtn.disabled = true;
+          githubBtn.textContent = "Archivo cargado desde GitHub";
+        }
+
         if (!auto) {
           hideAlert();
         }
         setAlert("ok", "Archivo descargado desde GitHub. Ingresá la contraseña.");
+        showToast("ok", "ARCHIVO DESCARGADO DESDE GITHUB");
+
         pwInp.focus();
       } catch (e) {
         console.error(e);
         if (!auto) {
           hideAlert();
           setAlert("err", "No se pudo descargar el archivo desde GitHub. Verificá que esté subido y el nombre sea correcto.");
-        } else {
-          hideAlert();
         }
+        showToast("err", "NO SE PUDO DESCARGAR DESDE GITHUB");
       }
     }
+
 
     if (githubBtn) {
       githubBtn.addEventListener("click", () => {
         fetchBinFromGithub(false);
-      });
-    }
-
-    if (githubBtn) {
-      githubBtn.addEventListener("click", () => {
-        fetchBinFromGithub();
       });
     }
 
@@ -967,7 +1009,7 @@
       const pw = (pwInp.value || "").trim();
 
       if (!PREFETCH_BUF && !f) {
-        setAlert("err", "Seleccioná el Archivo .bin o Descargalo desde Drive.");
+        setAlert("err", "Seleccioná el Archivo .bin o descargalo desde GitHub.");
         return;
       }
 
@@ -1158,5 +1200,6 @@
       applyFileIdInfo();
     })();
   </script>
+  <div id="toast" class="toast"></div>
 </body>
 </html>
